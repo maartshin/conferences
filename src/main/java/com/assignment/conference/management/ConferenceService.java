@@ -25,8 +25,10 @@ public class ConferenceService {
 
     @Transactional
     public ConferenceAddResponseDto addConference(ConferenceAddRequestDto conferenceDto) {
-        ConferenceEntity entity = conferenceRepository.save(conferenceMapper.mapConferenceAddRequestToEntity(conferenceDto));
-        return conferenceMapper.mapEntityToConferenceAddResponse(entity);
+        ConferenceEntity mappedEntity = conferenceMapper.mapConferenceAddRequestToEntity(conferenceDto);
+        mappedEntity.setStatus(ConferenceStatus.DEFAULT.name());
+        ConferenceEntity savedEntity = conferenceRepository.save(mappedEntity);
+        return conferenceMapper.mapEntityToConferenceAddResponse(savedEntity);
     }
 
     public List<ConferenceDetailsResponseDto> getAllConferences() {
@@ -48,10 +50,27 @@ public class ConferenceService {
     ) {
         ConferenceEntity conferenceEntity = conferenceRepository.findById(id)
                 .orElseThrow(EntityNotFoundException::new);
+        ConferenceParticipationValidator.validate(conferenceEntity);
         ParticipantEntity participantEntity = participantMapper.mapToEntity(participantRegisterRequestDto);
         participantEntity.setConference(conferenceEntity);
         ParticipantEntity savedParticipant = participantRepository.save(participantEntity);
         return participantMapper.mapToDto(savedParticipant);
+    }
+
+    @Transactional
+    public ConferenceDetailsResponseDto cancelConference(ConferenceCancelRequestDto requestDto) {
+        ConferenceEntity conferenceEntity = conferenceRepository.findById(requestDto.getConferenceId())
+                .orElseThrow(EntityNotFoundException::new);
+        conferenceEntity.setStatus(ConferenceStatus.CANCELED.name());
+        conferenceRepository.save(conferenceEntity);
+        return createConferenceDetailsResponseDto(conferenceEntity);
+    }
+
+
+    public void removeParticipant(ParticipantUnregisterRequestDto requestDto) {
+        ParticipantEntity participantEntity = participantRepository.findById(requestDto.getParticipantId())
+                .orElseThrow(EntityNotFoundException::new);
+        participantRepository.delete(participantEntity);
     }
 
     private ConferenceDetailsResponseDto createConferenceDetailsResponseDto(ConferenceEntity entity) {
@@ -59,5 +78,4 @@ public class ConferenceService {
         responseDto.setEntries((long) entity.getParticipants().size());
         return responseDto;
     }
-
 }

@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -32,6 +33,14 @@ public class JsonRestControllerExceptionHandler extends ResponseEntityExceptionH
         RestErrorDto restErrorDto = RestErrorDto.builder()
                 .error(messageSource.getMessage("general.validation.message", null, Locale.getDefault()))
                 .fieldErrorList(convertFieldErrors(ex))
+                .build();
+        return new ResponseEntity<>(restErrorDto, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<RestErrorDto> handleIllegalStateException(IllegalStateException exception) {
+        RestErrorDto restErrorDto = RestErrorDto.builder()
+                .error(exception.getMessage())
                 .build();
         return new ResponseEntity<>(restErrorDto, HttpStatus.BAD_REQUEST);
     }

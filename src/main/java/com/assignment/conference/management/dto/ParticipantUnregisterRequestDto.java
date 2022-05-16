@@ -5,9 +5,7 @@ import lombok.Data;
 import javax.validation.constraints.NotNull;
 
 @Data
-public class ConferenceCancelRequestDto {
-
+public class ParticipantUnregisterRequestDto {
     @NotNull
-    private Long conferenceId;
-
+    private Long participantId;
 }
