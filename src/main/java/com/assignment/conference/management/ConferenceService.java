@@ -61,12 +61,13 @@ public class ConferenceService {
     public ConferenceDetailsResponseDto cancelConference(ConferenceCancelRequestDto requestDto) {
         ConferenceEntity conferenceEntity = conferenceRepository.findById(requestDto.getConferenceId())
                 .orElseThrow(EntityNotFoundException::new);
-        conferenceEntity.setStatus(ConferenceStatus.CANCELED.name());
+        conferenceEntity.setStatus(ConferenceStatus.CANCELLED.name());
         conferenceRepository.save(conferenceEntity);
         return createConferenceDetailsResponseDto(conferenceEntity);
     }
 
 
+    @Transactional
     public void removeParticipant(ParticipantUnregisterRequestDto requestDto) {
         ParticipantEntity participantEntity = participantRepository.findById(requestDto.getParticipantId())
                 .orElseThrow(EntityNotFoundException::new);

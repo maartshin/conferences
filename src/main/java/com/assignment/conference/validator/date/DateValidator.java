@@ -15,6 +15,9 @@ public class DateValidator implements ConstraintValidator<DateValid, String> {
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
+        if (value == null) {
+            return true;
+        }
         try {
             this.dateTimeFormatter.parse(value);
             return true;

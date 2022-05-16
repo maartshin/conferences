@@ -5,7 +5,7 @@ import com.assignment.conference.management.entity.ConferenceEntity;
 public class ConferenceParticipationValidator {
 
     public static void validate(ConferenceEntity entity) {
-        if (ConferenceStatus.CANCELED.name().equals(entity.getStatus())) {
+        if (ConferenceStatus.CANCELLED.name().equals(entity.getStatus())) {
             throw new IllegalStateException("Conference is canceled, cannot register.");
         }
         if (entity.getMaxEntries() == entity.getParticipants().size()) {
