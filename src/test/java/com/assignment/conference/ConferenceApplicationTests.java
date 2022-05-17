@@ -2,7 +2,10 @@ package com.assignment.conference;
 
 import com.assignment.conference.management.dto.*;
 import io.restassured.RestAssured;
+import io.restassured.authentication.FormAuthConfig;
 import io.restassured.http.ContentType;
+import io.restassured.response.Response;
+import io.restassured.specification.RequestSpecification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,7 +14,7 @@ import org.springframework.boot.web.server.LocalServerPort;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-import static io.restassured.RestAssured.with;
+import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -27,7 +30,8 @@ class ConferenceApplicationTests {
 
 	@Test
 	void should_get_conference_info() {
-		ConferenceDetailsResponseDto responseDto = RestAssured.get("/api/conference/1")
+		ConferenceDetailsResponseDto responseDto = authenticateAsUser().when()
+				.get("/api/conference/1")
 				.then().statusCode(200).extract()
 				.as(ConferenceDetailsResponseDto.class);
 		assertEquals("Conference_1", responseDto.getName());
@@ -38,21 +42,30 @@ class ConferenceApplicationTests {
 
 	@Test
 	void should_return_404_when_conference_not_found() {
-		RestAssured.get("/api/conference/100")
+		authenticateAsUser().when()
+				.get("/api/conference/100")
 				.then().statusCode(404);
 	}
 
 	@Test
 	void should_add_new_conference() {
-		with().body(createConferenceAddRequestDto()).contentType(ContentType.JSON)
-				.when().request("POST", "/api/conference/new")
+		 authenticateAsAdmin().when().body(createConferenceAddRequestDto()).contentType(ContentType.JSON)
+				.request("POST", "/api/conference/new")
 				.then().statusCode(201);
 	}
 
 	@Test
+	void should_not_allow_adding_conference_for_without_admin_role() {
+		authenticateAsUser().when().body(createConferenceAddRequestDto()).contentType(ContentType.JSON)
+				.request("POST", "/api/conference/new")
+				.then().statusCode(403);
+	}
+
+	@Test
 	void should_validate_conference_input() {
-		RestErrorDto restErrorDto = with().body(new ConferenceAddRequestDto()).contentType(ContentType.JSON)
-				.when().request("POST", "/api/conference/new")
+		RestErrorDto restErrorDto = authenticateAsAdmin()
+				.body(new ConferenceAddRequestDto()).contentType(ContentType.JSON)
+				.request("POST", "/api/conference/new")
 				.then().statusCode(400)
 				.extract().as(RestErrorDto.class);
 		assertEquals("Request is not valid", restErrorDto.getError());
@@ -61,22 +74,33 @@ class ConferenceApplicationTests {
 
 	@Test
 	void should_add_new_participant() {
-		with().body(createParticipantRegisterRequestDto()).contentType(ContentType.JSON)
-				.when().request("POST", "/api/conference/3/register")
+		authenticateAsUser()
+				.body(createParticipantRegisterRequestDto()).contentType(ContentType.JSON)
+				.request("POST", "/api/conference/3/register")
 				.then().statusCode(200);
 	}
 
 	@Test
 	void should_cancel_conference() {
-		with().body(createCancelConferenceRequestDto(4L)).contentType(ContentType.JSON)
-				.when().request("PUT", "/api/conference/cancel")
+		authenticateAsAdmin()
+				.body(createCancelConferenceRequestDto(4L)).contentType(ContentType.JSON)
+				.request("PUT", "/api/conference/cancel")
 				.then().statusCode(200);
 	}
 
 	@Test
+	void should_not_allow_cancelling_conference_without_admin_role() {
+		authenticateAsUser()
+				.body(createCancelConferenceRequestDto(4L)).contentType(ContentType.JSON)
+				.request("PUT", "/api/conference/cancel")
+				.then().statusCode(403);
+	}
+
+	@Test
 	void should_validate_participant_input() {
-		RestErrorDto restErrorDto = with().body(new ParticipantRegisterRequestDto()).contentType(ContentType.JSON)
-				.when().request("POST", "/api/conference/3/register")
+		RestErrorDto restErrorDto = authenticateAsUser()
+				.body(new ParticipantRegisterRequestDto()).contentType(ContentType.JSON)
+				.request("POST", "/api/conference/3/register")
 				.then().statusCode(400)
 				.extract().as(RestErrorDto.class);
 		assertEquals("Request is not valid", restErrorDto.getError());
@@ -85,15 +109,23 @@ class ConferenceApplicationTests {
 
 	@Test
 	void should_remove_participant() {
-		with().body(createParticipantUnregisterRequestDto(3L)).contentType(ContentType.JSON)
-				.when().request("DELETE", "/api/conference/unregister")
+		authenticateAsAdmin().body(createParticipantUnregisterRequestDto(3L)).contentType(ContentType.JSON)
+				.request("DELETE", "/api/conference/unregister")
 				.then().statusCode(200);
 	}
 
 	@Test
+	void should_not_allow_removing_participant_without_admin_role() {
+		authenticateAsUser().body(createParticipantUnregisterRequestDto(3L)).contentType(ContentType.JSON)
+				.request("DELETE", "/api/conference/unregister")
+				.then().statusCode(403);
+	}
+
+	@Test
 	void should_not_allow_registering_to_conference_when_max_entries_reached() {
-		RestErrorDto restErrorDto = with().body(createParticipantRegisterRequestDto()).contentType(ContentType.JSON)
-				.when().request("POST", "/api/conference/1/register")
+		RestErrorDto restErrorDto = authenticateAsUser()
+				.body(createParticipantRegisterRequestDto()).contentType(ContentType.JSON)
+				.request("POST", "/api/conference/1/register")
 				.then().statusCode(400)
 				.extract().as(RestErrorDto.class);
 		assertEquals("Conference is full, cannot register.", restErrorDto.getError());
@@ -101,8 +133,9 @@ class ConferenceApplicationTests {
 
 	@Test
 	void should_not_allow_registering_to_cancelled_conference() {
-		RestErrorDto restErrorDto = with().body(createParticipantRegisterRequestDto()).contentType(ContentType.JSON)
-				.when().request("POST", "/api/conference/2/register")
+		RestErrorDto restErrorDto = authenticateAsUser()
+				.body(createParticipantRegisterRequestDto()).contentType(ContentType.JSON)
+				.request("POST", "/api/conference/2/register")
 				.then().statusCode(400)
 				.extract().as(RestErrorDto.class);
 		assertEquals("Conference is canceled, cannot register.", restErrorDto.getError());
@@ -134,6 +167,16 @@ class ConferenceApplicationTests {
 		requestDto.setName("Test Name");
 		requestDto.setEmail("test@email.com");
 		return requestDto;
+	}
+
+	private static RequestSpecification authenticateAsAdmin() {
+		return given().auth()
+				.basic("test_admin", "admin");
+	}
+
+	private static RequestSpecification authenticateAsUser() {
+		return given().auth()
+				.basic("test_user", "user");
 	}
 
 }
