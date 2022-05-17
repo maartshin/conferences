@@ -12,8 +12,13 @@ public interface ConferenceMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "status", ignore = true)
+    @Mapping(target = "participants", ignore = true)
     @Mapping(source = "startTime", target = "startTime", dateFormat = "yyyy-MM-dd")
     ConferenceEntity mapConferenceAddRequestToEntity(ConferenceAddRequestDto conferenceDto);
+
     ConferenceAddResponseDto mapEntityToConferenceAddResponse(ConferenceEntity conferenceEntity);
+
+    @Mapping(target = "entries", ignore = true)
     ConferenceDetailsResponseDto mapEntityToConferenceDetailsResponseDto(ConferenceEntity conferenceEntity);
+
 }

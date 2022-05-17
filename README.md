@@ -17,6 +17,7 @@
 ### Running the application
 Run command ```gradlew bootRun``` or run ConferenceApplication class.
 All endpoints require authentication. Basic authentication is used for authentication.
+API documentation can be seen from http://localhost:8080/swagger-ui/index.html. 
 
 ### Test accounts
 
